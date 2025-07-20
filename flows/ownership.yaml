@@ -1,0 +1,22 @@
+version: 1
+description: Ownership lookup flow
+tasks:
+  - id: county
+    uses: python:src.tools.county_scraper:run
+    with: { address: $input.address }
+  - id: azcc
+    uses: python:src.tools.azcc_lookup:run
+    with: { entity: ${county.entity_name} }
+  - id: enrich
+    uses: python:src.tools.contact_enrich:run
+    with: { principals: ${azcc.principals} }
+  - id: clean
+    uses: python:src.tools.data_normalize:run
+    with:
+      raw_data: ${enrich}
+      address: $input.address
+      entity: ${county.entity_name}
+  - id: crm
+    uses: python:src.tools.crm_writer:run
+    with: { rows: ${clean.rows} }
+output: ${crm.status}
